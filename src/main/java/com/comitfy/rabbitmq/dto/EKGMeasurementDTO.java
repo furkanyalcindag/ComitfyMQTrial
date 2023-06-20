@@ -13,6 +13,7 @@ public class EKGMeasurementDTO {
     private Boolean isLead;
     private Boolean save;
     private Integer data_type;
+    private String hr;
 
 
 }

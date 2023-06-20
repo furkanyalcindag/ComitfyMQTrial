@@ -11,7 +11,7 @@ import java.util.Properties;
 
 @Configuration
 @Slf4j
-
+@Data
 public class IOTDBConfig {
 
     @Value("${iotdb.connection.host}")
