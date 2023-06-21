@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
@@ -27,7 +28,7 @@ public class IOTDBService {
 
     public static Set<String> cache = new HashSet<>();
 
-    public static Map<String, Timer> timeSeriesCache = new HashMap<>();
+    public static Map<String, Timer> timeSeriesCache = new ConcurrentHashMap<>();
 
     public static Map<String, EKGMeasurementDTO> measurementCacheByTimeSeriesPathMap = new HashMap<>();
 
