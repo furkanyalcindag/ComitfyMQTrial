@@ -116,6 +116,8 @@ public class RestApiClientService {
         String myHash = DatatypeConverter
                 .printHexBinary(digest).toUpperCase();
 
+        String myHasy = sessionId;
+
         RestTemplate restTemplate = new RestTemplate();
         String convertUrl
                 = apiConfiguration.getDartFrogUrl() + "/ecg/collector?action=" + actionType.name() + "&sid=" + myHash;

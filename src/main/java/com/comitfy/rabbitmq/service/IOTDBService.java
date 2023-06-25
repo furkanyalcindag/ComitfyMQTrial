@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -59,31 +60,36 @@ public class IOTDBService {
         } else {
             if (!session.checkTimeseriesExists(path)) {
                 //if (false) {
-                    TSEncoding encoding = TSEncoding.PLAIN;
-                    CompressionType compressionType = CompressionType.SNAPPY;
+                TSEncoding encoding = TSEncoding.PLAIN;
+                CompressionType compressionType = CompressionType.SNAPPY;
 
+                try {
                     session.createTimeseries(path, TSDataType.DOUBLE, encoding, compressionType);
-
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            actionAfterTimeout(path);
-                        }
-                    }, 30000);
-                    timeSeriesCache.put(path, timer);
-                    return Boolean.FALSE;
-                } else {
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            actionAfterTimeout(path);
-                        }
-                    }, 30000);
-                    timeSeriesCache.put(path, timer);
-                    return Boolean.TRUE;
+                } catch (Exception e) {
+                    log.error(e.getMessage());
                 }
+
+
+                Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        actionAfterTimeout(path);
+                    }
+                }, 30000);
+                timeSeriesCache.put(path, timer);
+                return Boolean.FALSE;
+            } else {
+                Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        actionAfterTimeout(path);
+                    }
+                }, 30000);
+                timeSeriesCache.put(path, timer);
+                return Boolean.TRUE;
+            }
 
 
         }
@@ -111,12 +117,16 @@ public class IOTDBService {
         try {
             int i = 0;
             while (i < 3) {
+                log.info("start to publish");
                 ResponseEntity<BaseResponseDTO> baseResponseDTOResponseEntity = restApiClientService.collectorApiConsume(null, key.split("_sid")[1], ActionType.publish);
+                log.info("end to publish");
                 if (baseResponseDTOResponseEntity.getBody().getSuccess()) {
                     break;
                 } else {
                     if (i == 2) {
+                        log.info("start to dispose");
                         restApiClientService.collectorApiConsume(null, key.split("_sid")[1], ActionType.dispose);
+                        log.info("end to dispose");
                         break;
                     }
                 }
@@ -157,6 +167,13 @@ public class IOTDBService {
         };
 
         ekgMeasurementDTOList = mapper.readValue(message, typeReference);
+        ekgMeasurementDTOList = ekgMeasurementDTOList.stream().filter(e -> e.getSave() == Boolean.TRUE).collect(Collectors.toList());
+
+        if (ekgMeasurementDTOList.isEmpty()) {
+
+            return;
+
+        }
 
         Session session = iotdbConfig.ioTDBConnectionManager().getSession();
 
@@ -173,7 +190,7 @@ public class IOTDBService {
 
             String sessionId = null;
 
-            sessionId = ekgMeasurementDTOList != null ? ekgMeasurementDTOList.get(0).getSid().split("_")[0] : null;
+            sessionId = ekgMeasurementDTOList.get(0).getSid().split("_")[0];
             if (sessionId == null)
                 throw new Exception("data is corrupt");
 
@@ -182,15 +199,11 @@ public class IOTDBService {
 
             for (EKGMeasurementDTO ekg : ekgMeasurementDTOList) {
 
-
-                if (ekg.getSave()) {
-
-
-                    ekg.setSn(ekg.getSn().replace("-", ""));
-                    String deviceId = iotdbConfig.getStorageGroup()+"." + ekg.getSn(); // Veri noktasının cihaz kimliği
-                    //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid." + ekg.getSid().split("_")[0];
-                    String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + "_sid" + ekg.getSid().split("_")[0];
-                    //session.createTimeseries("root.binEcg.SDSDSDSD46.own3002_sid343434343", TSDataType.INT32, encoding, compressionType)
+                ekg.setSn(ekg.getSn().replace("-", ""));
+                String deviceId = iotdbConfig.getStorageGroup() + "." + ekg.getSn(); // Veri noktasının cihaz kimliği
+                //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid." + ekg.getSid().split("_")[0];
+                String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + "_sid" + ekg.getSid().split("_")[0];
+                //session.createTimeseries("root.binEcg.SDSDSDSD46.own3002_sid343434343", TSDataType.INT32, encoding, compressionType)
 
                    /* if (!session.checkTimeseriesExists(timeSeriesPath)) {
                         TSEncoding encoding = TSEncoding.PLAIN;
@@ -199,28 +212,20 @@ public class IOTDBService {
                     }*/
 
 
-                    checkTimeSeriesExits(session, timeSeriesPath);
+                checkTimeSeriesExits(session, timeSeriesPath);
 
-                    //setEKGSetAttributeFromRQ(timeSeriesPath, ekg);
+                //setEKGSetAttributeFromRQ(timeSeriesPath, ekg);
 
-
-                    session.insertRecord(deviceId, ekg.getTs(), List.of("own" + ekg.getOwn()), List.of(TSDataType.DOUBLE), List.of(Double.valueOf(ekg.getVal())));
-                    log.info("data was saved");
-
-                } else {
-                    log.info("isSaved : false for ekg sessionId {}", ekg.getSid());
-                }
-
+                session.insertRecord(deviceId, ekg.getTs(), List.of("own" + ekg.getOwn()), List.of(TSDataType.DOUBLE), List.of(Double.valueOf(ekg.getVal())));
+                log.info("data was saved");
             }
-
-
         } catch (
                 Exception e) {
             e.printStackTrace();
-            //session.close();
+            session.close();
 
         } finally {
-            //session.close();
+            session.close();
         }
 
 
@@ -237,18 +242,13 @@ public class IOTDBService {
                         username(iotdbConfig.getUser()).password(iotdbConfig.getPassword()).build();
 
 
-       // Session session = iotdbConfig.ioTDBConnectionManager().getSession();
+        // Session session = iotdbConfig.ioTDBConnectionManager().getSession();
         session.open();
-
         try {
             session.setStorageGroup(iotdbConfig.getStorageGroup());
         } catch (Exception e) {
 
         }
-
-
-
-
         TSEncoding encoding = TSEncoding.PLAIN;
         CompressionType compressionType = CompressionType.SNAPPY;
         String timeSeriesPath = "SDSDSDSD46" + ".own_" + "3002" + "_sid" + "343434343_3002".split("_")[0];
