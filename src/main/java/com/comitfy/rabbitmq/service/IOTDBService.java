@@ -113,7 +113,6 @@ public class IOTDBService {
 
 
     void actionAfterTimeout(String key) {
-
         try {
             int i = 0;
             while (i < 3) {
@@ -130,9 +129,7 @@ public class IOTDBService {
                         break;
                     }
                 }
-
                 i++;
-
             }
 
 
@@ -176,7 +173,11 @@ public class IOTDBService {
         }
 
         Session session = iotdbConfig.ioTDBConnectionManager().getSession();
-
+        List<String> deviceIdList = new ArrayList<>();
+        List<Long> timeSerieList = new ArrayList<>();
+        List<List<String>> measurementList = new ArrayList<>();
+        List<List<TSDataType>> tsDataTypeList = new ArrayList<>();
+        List<List<Object>> valueList = new ArrayList<>();
 
         try {
             session.open();
@@ -213,19 +214,39 @@ public class IOTDBService {
 
 
                 checkTimeSeriesExits(session, timeSeriesPath);
+                deviceIdList.add(deviceId);
+                timeSerieList.add(ekg.getTs());
+                measurementList.add(List.of("own" + ekg.getOwn()));
+                tsDataTypeList.add(List.of(TSDataType.DOUBLE));
+                valueList.add(List.of(Double.valueOf(ekg.getVal())));
 
                 //setEKGSetAttributeFromRQ(timeSeriesPath, ekg);
 
-                session.insertRecord(deviceId, ekg.getTs(), List.of("own" + ekg.getOwn()), List.of(TSDataType.DOUBLE), List.of(Double.valueOf(ekg.getVal())));
+
+                //session.insertRecord(deviceId, ekg.getTs(), List.of("own" + ekg.getOwn()), List.of(TSDataType.DOUBLE), List.of(Double.valueOf(ekg.getVal())));
                 log.info("data was saved");
             }
+
+            session.insertRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
+
         } catch (
                 Exception e) {
             e.printStackTrace();
             session.close();
+            deviceIdList.clear();
+            timeSerieList.clear();
+            measurementList.clear();
+            tsDataTypeList.clear();
+            valueList.clear();
+
 
         } finally {
             session.close();
+            deviceIdList.clear();
+            timeSerieList.clear();
+            measurementList.clear();
+            tsDataTypeList.clear();
+            valueList.clear();
         }
 
 
