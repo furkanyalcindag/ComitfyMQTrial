@@ -2,6 +2,7 @@ package com.comitfy.rabbitmq.service;
 
 import com.comitfy.rabbitmq.ActionType;
 import com.comitfy.rabbitmq.configuration.IOTDBConfig;
+import com.comitfy.rabbitmq.consumer.RabbitMQProducer;
 import com.comitfy.rabbitmq.dto.BaseResponseDTO;
 import com.comitfy.rabbitmq.dto.EKGMeasurementDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,6 +40,9 @@ public class IOTDBService {
 
     @Autowired
     RestApiClientService restApiClientService;
+
+    @Autowired
+    RabbitMQProducer rabbitMQProducer;
 
 
     public boolean checkTimeSeriesExits(Session session, String path) throws IoTDBConnectionException, StatementExecutionException {
@@ -223,13 +227,13 @@ public class IOTDBService {
 
                 //setEKGSetAttributeFromRQ(timeSeriesPath, ekg);
 
-
                 //session.insertRecord(deviceId, ekg.getTs(), List.of("own" + ekg.getOwn()), List.of(TSDataType.DOUBLE), List.of(Double.valueOf(ekg.getVal())));
-                log.info("data was saved");
             }
 
             session.insertRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
+            log.info("data was saved");
 
+            rabbitMQProducer.sendMessage(message);
         } catch (
                 Exception e) {
             e.printStackTrace();

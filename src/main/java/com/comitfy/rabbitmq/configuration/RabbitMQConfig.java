@@ -23,6 +23,12 @@ public class RabbitMQConfig {
         return new Queue(queue);
     }
 
+
+    @Bean
+    public Queue queueProducer() {
+        return new Queue("fileCollector", true);
+    }
+
     // spring bean for rabbitmq exchange
     @Bean
     public TopicExchange exchange(){

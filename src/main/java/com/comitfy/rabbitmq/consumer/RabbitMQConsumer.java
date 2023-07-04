@@ -21,7 +21,5 @@ public class RabbitMQConsumer {
     public void consume(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         LOGGER.info(String.format("Received message -> %s", message));
         iotdbService.insert(message);
-
-
     }
 }
