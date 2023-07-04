@@ -15,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -103,10 +104,11 @@ public class RestApiClientService {
     }
 
 
-    @Retryable(
+    /*@Retryable(
             maxAttempts = 3,
             backoff = @Backoff(delay = 1000, multiplier = 1.5)
-    )
+    )*/
+    @Async
     public ResponseEntity<BaseResponseDTO> collectorApiConsume(List<EKGMeasurementDTO> ekgMeasurementDTOList, String sessionId, ActionType actionType) throws NoSuchAlgorithmException {
 
 
