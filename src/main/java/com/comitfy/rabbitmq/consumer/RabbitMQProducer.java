@@ -3,6 +3,7 @@ package com.comitfy.rabbitmq.consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,8 +18,17 @@ public class RabbitMQProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
+    @Async
     public void sendMessage(String message) {
-        rabbitTemplate.convertAndSend(queueName, message);
-        log.info("Message sent: " + message);
+        try{
+            rabbitTemplate.convertAndSend(queueName, message);
+            log.info("Message sent: " + message);
+        }
+        catch (Exception e){
+
+            log.error("Message not sent: " + e.getMessage());
+
+        }
+
     }
 }
