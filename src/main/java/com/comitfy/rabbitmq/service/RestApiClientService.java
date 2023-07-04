@@ -22,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
@@ -109,7 +110,7 @@ public class RestApiClientService {
             backoff = @Backoff(delay = 1000, multiplier = 1.5)
     )*/
     @Async
-    public ResponseEntity<BaseResponseDTO> collectorApiConsume(List<EKGMeasurementDTO> ekgMeasurementDTOList, String sessionId, ActionType actionType) throws NoSuchAlgorithmException {
+    public CompletableFuture<BaseResponseDTO> collectorApiConsume(List<EKGMeasurementDTO> ekgMeasurementDTOList, String sessionId, ActionType actionType) throws NoSuchAlgorithmException {
 
 
         MessageDigest md = MessageDigest.getInstance("MD5");
@@ -131,11 +132,12 @@ public class RestApiClientService {
             log.info("publish api worked");
         }
 
-        return restTemplate
+        var response = restTemplate
                 .exchange(convertUrl,
                         HttpMethod.POST,
                         entity,
                         BaseResponseDTO.class);
+        return CompletableFuture.completedFuture(response.getBody());
 
 
     }

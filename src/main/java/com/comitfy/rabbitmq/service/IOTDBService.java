@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -117,9 +118,9 @@ public class IOTDBService {
             int i = 0;
             while (i < 3) {
                 log.info("start to publish");
-                ResponseEntity<BaseResponseDTO> baseResponseDTOResponseEntity = restApiClientService.collectorApiConsume(null, key.split("_sid")[1], ActionType.publish);
+                CompletableFuture<BaseResponseDTO> baseResponseDTOResponseEntity = restApiClientService.collectorApiConsume(null, key.split("_sid")[1], ActionType.publish);
                 log.info("end to publish");
-                if (baseResponseDTOResponseEntity.getBody().getSuccess()) {
+                if (Boolean.TRUE.equals(baseResponseDTOResponseEntity.get().getSuccess())) {
                     break;
                 } else {
                     if (i == 2) {
