@@ -205,11 +205,11 @@ public class IOTDBService {
         try {
             session.open();
 
-            try {
+           /* try {
                 session.setStorageGroup(iotdbConfig.getStorageGroup());
             } catch (Exception e) {
                 log.info(e.getMessage());
-            }
+            }*/
 
 
             String sessionId = null;
