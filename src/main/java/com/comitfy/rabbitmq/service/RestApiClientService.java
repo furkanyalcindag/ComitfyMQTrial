@@ -105,10 +105,10 @@ public class RestApiClientService {
     }
 
 
-    /*@Retryable(
+    @Retryable(
             maxAttempts = 3,
             backoff = @Backoff(delay = 1000, multiplier = 1.5)
-    )*/
+    )
     @Async
     public CompletableFuture<BaseResponseDTO> collectorApiConsume(List<EKGMeasurementDTO> ekgMeasurementDTOList, String sessionId, ActionType actionType) throws NoSuchAlgorithmException {
 

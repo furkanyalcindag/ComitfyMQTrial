@@ -63,13 +63,31 @@ public class IOTDBService {
             return Boolean.TRUE;
 
         } else {
-            if (!session.checkTimeseriesExists(path)) {
+            if (!session.checkTimeseriesExists(path+".val")) {
                 //if (false) {
                 TSEncoding encoding = TSEncoding.PLAIN;
                 CompressionType compressionType = CompressionType.SNAPPY;
+                List<TSDataType> tsDataTypeList = new ArrayList<>();
+                tsDataTypeList.add(TSDataType.DOUBLE);
+                tsDataTypeList.add(TSDataType.BOOLEAN);
 
+                List<TSEncoding> tsEncodings = new ArrayList<>();
+                tsEncodings.add(TSEncoding.PLAIN);
+                tsEncodings.add(TSEncoding.PLAIN);
+
+                List<CompressionType> compressionTypes = new ArrayList<>();
+                compressionTypes.add(CompressionType.SNAPPY);
+                compressionTypes.add(CompressionType.SNAPPY);
+
+
+                List<String> measurements = new ArrayList<>();
+                measurements.add("val");
+                measurements.add("lead");
                 try {
-                    session.createTimeseries(path, TSDataType.DOUBLE, encoding, compressionType);
+                    //session.createTimeseries(path, TSDataType.DOUBLE, encoding, compressionType);
+                    //path, tsDataTypeList, tsEncodings, compressionTypes, measurements
+                    session.createAlignedTimeseries(path,measurements,tsDataTypeList,tsEncodings,compressionTypes,new ArrayList<>(List.of("val","lead")));
+                    //session.createAlignedTimeseries(" root.ecg.mi_hythm_wC020000000CC.own4678.sid_hjdgsjhdgjs",measurements,tsDataTypeList,tsEncodings,compressionTypes,new ArrayList<>(List.of("val","lead")))
                 } catch (Exception e) {
                     log.error(e.getMessage());
                 }
@@ -122,14 +140,14 @@ public class IOTDBService {
             int i = 0;
             while (i < 3) {
                 log.info("start to publish");
-                CompletableFuture<BaseResponseDTO> baseResponseDTOResponseEntity = restApiClientService.collectorApiConsume(null, key.split("_sid")[1], ActionType.publish);
+                CompletableFuture<BaseResponseDTO> baseResponseDTOResponseEntity = restApiClientService.collectorApiConsume(null, key.split(".sid")[1], ActionType.publish);
                 log.info("end to publish");
                 if (Boolean.TRUE.equals(baseResponseDTOResponseEntity.get().getSuccess())) {
                     break;
                 } else {
                     if (i == 2) {
                         log.info("start to dispose");
-                        restApiClientService.collectorApiConsume(null, key.split("_sid")[1], ActionType.dispose);
+                        restApiClientService.collectorApiConsume(null, key.split(".sid")[1], ActionType.dispose);
                         log.info("end to dispose");
                         break;
                     }
@@ -195,8 +213,21 @@ public class IOTDBService {
 
 
             String sessionId = null;
+            /*
+            LİVE GELİRSE ==>> 9832983920382_3204
+SYNC GELİRSE ==>> sync_9832983920382_3204
+             */
 
-            sessionId = ekgMeasurementDTOList.get(0).getSid().split("_")[0];
+
+
+            sessionId = ekgMeasurementDTOList.get(0).getSid();
+            if(sessionId.contains("sync")){
+                sessionId=sessionId.split("_")[1];
+            }
+            else{
+                sessionId=sessionId.split("_")[0];
+            }
+
             if (sessionId == null)
                 throw new Exception("data is corrupt");
 
@@ -205,10 +236,10 @@ public class IOTDBService {
 
             for (EKGMeasurementDTO ekg : ekgMeasurementDTOList) {
 
-                ekg.setSn(ekg.getSn().replace("-", ""));
+                ekg.setSn(ekg.getSn().replace("-", "_"));
                 String deviceId = iotdbConfig.getStorageGroup() + "." + ekg.getSn(); // Veri noktasının cihaz kimliği
                 //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid." + ekg.getSid().split("_")[0];
-                String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + "_sid" + ekg.getSid().split("_")[0];
+                //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + "_sid" + ekg.getSid().split("_")[0];
                 //session.createTimeseries("root.binEcg.SDSDSDSD46.own3002_sid343434343", TSDataType.INT32, encoding, compressionType)
 
                    /* if (!session.checkTimeseriesExists(timeSeriesPath)) {
@@ -218,22 +249,45 @@ public class IOTDBService {
                     }*/
 
 
+                String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid"+sessionId;
+
                 checkTimeSeriesExits(session, timeSeriesPath);
-                deviceIdList.add(deviceId);
+                deviceIdList.add(timeSeriesPath);
                 timeSerieList.add(ekg.getTs());
-                measurementList.add(List.of("own" + ekg.getOwn()));
-                tsDataTypeList.add(List.of(TSDataType.DOUBLE));
-                valueList.add(List.of(Double.valueOf(ekg.getVal())));
+                //measurementList.add(List.of("own" + ekg.getOwn()));
+                List<String> measurements = new ArrayList<>();
+                measurements.add("val");
+                measurements.add("lead");
+                measurementList.add(measurements);
+
+                List<TSDataType> tsDataTypeList1 = new ArrayList<>();
+                tsDataTypeList1.add(TSDataType.DOUBLE);
+                tsDataTypeList1.add(TSDataType.BOOLEAN);
+
+               // tsDataTypeList.add(List.of(TSDataType.DOUBLE));
+                tsDataTypeList.add(tsDataTypeList1);
+
+                List<Object> values = new ArrayList<>();
+                values.add(Double.valueOf(ekg.getVal()));
+                values.add(ekg.getIsLead());
+
+                //valueList.add(List.of(Double.valueOf(ekg.getVal())));
+                valueList.add(values);
 
                 //setEKGSetAttributeFromRQ(timeSeriesPath, ekg);
 
                 //session.insertRecord(deviceId, ekg.getTs(), List.of("own" + ekg.getOwn()), List.of(TSDataType.DOUBLE), List.of(Double.valueOf(ekg.getVal())));
             }
 
-            session.insertRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
+
+
+            //session.insertRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
+            session.insertAlignedRecords(deviceIdList,timeSerieList,measurementList,tsDataTypeList,valueList);
+
+
             log.info("data was saved");
 
-            rabbitMQProducer.sendMessage(message);
+            //rabbitMQProducer.sendMessage(message);
         } catch (
                 Exception e) {
             e.printStackTrace();
