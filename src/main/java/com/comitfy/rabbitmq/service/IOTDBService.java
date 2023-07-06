@@ -63,7 +63,13 @@ public class IOTDBService {
             return Boolean.TRUE;
 
         } else {
-            if (!session.checkTimeseriesExists(path+".val")) {
+            boolean isExist = Boolean.FALSE;
+            try {
+                isExist = session.checkTimeseriesExists(path + ".val");
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
+            if (!isExist) {
                 //if (false) {
                 TSEncoding encoding = TSEncoding.PLAIN;
                 CompressionType compressionType = CompressionType.SNAPPY;
@@ -86,7 +92,7 @@ public class IOTDBService {
                 try {
                     //session.createTimeseries(path, TSDataType.DOUBLE, encoding, compressionType);
                     //path, tsDataTypeList, tsEncodings, compressionTypes, measurements
-                    session.createAlignedTimeseries(path,measurements,tsDataTypeList,tsEncodings,compressionTypes,new ArrayList<>(List.of("val","lead")));
+                    session.createAlignedTimeseries(path, measurements, tsDataTypeList, tsEncodings, compressionTypes, new ArrayList<>(List.of("val", "lead")));
                     //session.createAlignedTimeseries(" root.ecg.mi_hythm_wC020000000CC.own4678.sid_hjdgsjhdgjs",measurements,tsDataTypeList,tsEncodings,compressionTypes,new ArrayList<>(List.of("val","lead")))
                 } catch (Exception e) {
                     log.error(e.getMessage());
@@ -194,6 +200,22 @@ public class IOTDBService {
             return;
 
         }
+        String sessionId = null;
+
+        sessionId = ekgMeasurementDTOList.get(0).getSid();
+        if (sessionId.contains("sync")) {
+            sessionId = sessionId.split("_")[1];
+        } else {
+            sessionId = sessionId.split("_")[0];
+        }
+
+
+        try {
+            restApiClientService.collectorApiConsume(ekgMeasurementDTOList, sessionId, ActionType.collect);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+        }
+
 
         Session session = iotdbConfig.ioTDBConnectionManager().getSession();
         List<String> deviceIdList = new ArrayList<>();
@@ -212,26 +234,15 @@ public class IOTDBService {
             }*/
 
 
-            String sessionId = null;
+
             /*
             LİVE GELİRSE ==>> 9832983920382_3204
 SYNC GELİRSE ==>> sync_9832983920382_3204
              */
 
 
-
-            sessionId = ekgMeasurementDTOList.get(0).getSid();
-            if(sessionId.contains("sync")){
-                sessionId=sessionId.split("_")[1];
-            }
-            else{
-                sessionId=sessionId.split("_")[0];
-            }
-
             if (sessionId == null)
                 throw new Exception("data is corrupt");
-
-            restApiClientService.collectorApiConsume(ekgMeasurementDTOList, sessionId, ActionType.collect);
 
 
             for (EKGMeasurementDTO ekg : ekgMeasurementDTOList) {
@@ -249,7 +260,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
                     }*/
 
 
-                String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid"+sessionId;
+                String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid" + sessionId;
 
                 checkTimeSeriesExits(session, timeSeriesPath);
                 deviceIdList.add(timeSeriesPath);
@@ -264,7 +275,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
                 tsDataTypeList1.add(TSDataType.DOUBLE);
                 tsDataTypeList1.add(TSDataType.BOOLEAN);
 
-               // tsDataTypeList.add(List.of(TSDataType.DOUBLE));
+                // tsDataTypeList.add(List.of(TSDataType.DOUBLE));
                 tsDataTypeList.add(tsDataTypeList1);
 
                 List<Object> values = new ArrayList<>();
@@ -280,9 +291,8 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             }
 
 
-
             //session.insertRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
-            session.insertAlignedRecords(deviceIdList,timeSerieList,measurementList,tsDataTypeList,valueList);
+            session.insertAlignedRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
 
 
             log.info("data was saved");
