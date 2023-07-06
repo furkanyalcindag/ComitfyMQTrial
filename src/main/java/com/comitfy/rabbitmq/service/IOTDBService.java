@@ -64,6 +64,8 @@ public class IOTDBService {
 
         } else {
             boolean isExist = Boolean.FALSE;
+
+
             try {
                 isExist = session.checkTimeseriesExists(path + ".val");
             } catch (Exception e) {
@@ -210,6 +212,14 @@ public class IOTDBService {
         }
 
 
+        String sn = ekgMeasurementDTOList.get(0).getSn().replace("-", "_");
+
+        String deviceId = iotdbConfig.getStorageGroup() + "." + sn;
+        String own = ekgMeasurementDTOList.get(0).getOwn();
+
+        String timeSeriesPath = deviceId + ".own" + own + ".sid" + sessionId;
+
+
         try {
             restApiClientService.collectorApiConsume(ekgMeasurementDTOList, sessionId, ActionType.collect);
         } catch (Exception e) {
@@ -225,7 +235,7 @@ public class IOTDBService {
         List<List<Object>> valueList = new ArrayList<>();
 
         try {
-            session.open();
+
 
            /* try {
                 session.setStorageGroup(iotdbConfig.getStorageGroup());
@@ -241,14 +251,13 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
              */
 
 
-            if (sessionId == null)
-                throw new Exception("data is corrupt");
+            if (sessionId == null) throw new Exception("data is corrupt");
 
 
             for (EKGMeasurementDTO ekg : ekgMeasurementDTOList) {
 
                 ekg.setSn(ekg.getSn().replace("-", "_"));
-                String deviceId = iotdbConfig.getStorageGroup() + "." + ekg.getSn(); // Veri noktasının cihaz kimliği
+                // String deviceId = iotdbConfig.getStorageGroup() + "." + ekg.getSn(); // Veri noktasının cihaz kimliği
                 //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid." + ekg.getSid().split("_")[0];
                 //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + "_sid" + ekg.getSid().split("_")[0];
                 //session.createTimeseries("root.binEcg.SDSDSDSD46.own3002_sid343434343", TSDataType.INT32, encoding, compressionType)
@@ -260,7 +269,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
                     }*/
 
 
-                String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid" + sessionId;
+                // String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid" + sessionId;
 
                 checkTimeSeriesExits(session, timeSeriesPath);
                 deviceIdList.add(timeSeriesPath);
@@ -298,19 +307,27 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             log.info("data was saved");
 
             //rabbitMQProducer.sendMessage(message);
-        } catch (
-                Exception e) {
+        } catch (IoTDBConnectionException ioTDBConnectionException) {
+            ioTDBConnectionException.printStackTrace();
+            checkTimeSeriesExits(session, timeSeriesPath);
+
+            deviceIdList.clear();
+            timeSerieList.clear();
+            measurementList.clear();
+            tsDataTypeList.clear();
+            valueList.clear();
+        } catch (Exception e) {
             e.printStackTrace();
-            session.close();
+            checkTimeSeriesExits(session, timeSeriesPath);
+
             deviceIdList.clear();
             timeSerieList.clear();
             measurementList.clear();
             tsDataTypeList.clear();
             valueList.clear();
 
-
         } finally {
-            session.close();
+            
             deviceIdList.clear();
             timeSerieList.clear();
             measurementList.clear();
@@ -325,11 +342,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
     public void deneme() throws IoTDBConnectionException, StatementExecutionException {
 
 
-        Session session =
-                new Session.Builder()
-                        .host(iotdbConfig.getHost())
-                        .port(Integer.valueOf(iotdbConfig.getPort())).
-                        username(iotdbConfig.getUser()).password(iotdbConfig.getPassword()).build();
+        Session session = new Session.Builder().host(iotdbConfig.getHost()).port(Integer.valueOf(iotdbConfig.getPort())).username(iotdbConfig.getUser()).password(iotdbConfig.getPassword()).build();
 
 
         // Session session = iotdbConfig.ioTDBConnectionManager().getSession();

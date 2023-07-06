@@ -12,7 +12,8 @@ public class IoTDBConnectionManager {
         session = new Session(host, Integer.parseInt(port), username, password);
     }
 
-    public synchronized Session getSession() {
+    public synchronized Session getSession() throws IoTDBConnectionException {
+        session.open();
         return session;
     }
 
