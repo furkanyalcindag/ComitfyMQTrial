@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,8 +45,12 @@ public class IOTDBService {
     @Autowired
     RabbitMQProducer rabbitMQProducer;
 
+    @Autowired
+    RedisService redisService;
 
-    public boolean checkTimeSeriesExits(Session session, String path) throws IoTDBConnectionException, StatementExecutionException {
+
+    public boolean checkTimeSeriesExits(Session session, String path,String ecgSession) throws IoTDBConnectionException, StatementExecutionException {
+
 
 
         if (timeSeriesCache.containsKey(path)) {
@@ -56,7 +61,7 @@ public class IOTDBService {
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    actionAfterTimeout(path);
+                    actionAfterTimeout(path,ecgSession);
                 }
             }, 30000);
             timeSeriesCache.put(path, timer);
@@ -105,7 +110,7 @@ public class IOTDBService {
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        actionAfterTimeout(path);
+                        actionAfterTimeout(path, ecgSession);
                     }
                 }, 30000);
                 timeSeriesCache.put(path, timer);
@@ -115,7 +120,7 @@ public class IOTDBService {
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        actionAfterTimeout(path);
+                        actionAfterTimeout(path,ecgSession);
                     }
                 }, 30000);
                 timeSeriesCache.put(path, timer);
@@ -143,26 +148,28 @@ public class IOTDBService {
     }
 
 
-    void actionAfterTimeout(String key) {
+    void actionAfterTimeout(String key,String ecgSession) {
         try {
-            int i = 0;
-            while (i < 3) {
-                log.info("start to publish");
-                CompletableFuture<BaseResponseDTO> baseResponseDTOResponseEntity = restApiClientService.collectorApiConsume(null, key.split(".sid")[1], ActionType.publish);
-                log.info("end to publish");
-                if (Boolean.TRUE.equals(baseResponseDTOResponseEntity.get().getSuccess())) {
-                    break;
-                } else {
-                    if (i == 2) {
-                        log.info("start to dispose");
-                        restApiClientService.collectorApiConsume(null, key.split(".sid")[1], ActionType.dispose);
-                        log.info("end to dispose");
-                        break;
-                    }
-                }
-                i++;
-            }
 
+            Long inCount =   redisService.getCount("in_"+ecgSession);
+            Long outCount =   redisService.getCount("out_"+ecgSession);
+
+            log.info("for "+ ecgSession +"redis inCount: "+inCount+" outcount: "+ outCount);
+
+            if(inCount.equals(outCount)){
+                Session session = iotdbConfig.ioTDBConnectionManager().getSession();
+                restApiClientService.convertApiConsume(session,ecgSession);
+            }
+            else {
+                Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        actionAfterTimeout(key, ecgSession);
+                    }
+                }, 30000);
+                timeSeriesCache.put(key, timer);
+            }
 
             timeSeriesCache.get(key).cancel();
 
@@ -173,11 +180,11 @@ public class IOTDBService {
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    actionAfterTimeout("path");
+                    actionAfterTimeout(key,ecgSession);
                 }
             }, 30000);
 
-            timeSeriesCache.put("key", timer);
+            timeSeriesCache.put(key, timer);
 
         }
 
@@ -185,7 +192,7 @@ public class IOTDBService {
     }
 
 
-    public void insert(String message) throws JsonProcessingException, IoTDBConnectionException, StatementExecutionException {
+    public void insert(String message) throws JsonProcessingException, IoTDBConnectionException, StatementExecutionException, NoSuchAlgorithmException {
 
         ObjectMapper mapper = new ObjectMapper();
 
@@ -202,14 +209,21 @@ public class IOTDBService {
             return;
 
         }
+
+
         String sessionId = null;
 
-        sessionId = ekgMeasurementDTOList.get(0).getSid();
-        if (sessionId.contains("sync")) {
+        String originalSessionId = ekgMeasurementDTOList.get(0).getSid();
+
+
+        /*if (sessionId.contains("sync")) {
             sessionId = sessionId.split("_")[1];
         } else {
             sessionId = sessionId.split("_")[0];
-        }
+        }*/
+
+
+        sessionId = restApiClientService.getHash(originalSessionId);
 
 
         String sn = ekgMeasurementDTOList.get(0).getSn().replace("-", "_");
@@ -220,11 +234,11 @@ public class IOTDBService {
         String timeSeriesPath = deviceId + ".own" + own + ".sid" + sessionId;
 
 
-        try {
+       /* try {
             restApiClientService.collectorApiConsume(ekgMeasurementDTOList, sessionId, ActionType.collect);
         } catch (Exception e) {
             log.info(e.getMessage());
-        }
+        }*/
 
 
         Session session = iotdbConfig.ioTDBConnectionManager().getSession();
@@ -271,7 +285,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
 
                 // String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid" + sessionId;
 
-                checkTimeSeriesExits(session, timeSeriesPath);
+                checkTimeSeriesExits(session, timeSeriesPath,ekgMeasurementDTOList.get(0).getSid());
                 deviceIdList.add(timeSeriesPath);
                 timeSerieList.add(ekg.getTs());
                 //measurementList.add(List.of("own" + ekg.getOwn()));
@@ -303,13 +317,14 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             //session.insertRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
             session.insertAlignedRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
 
+            redisService.setValue(ekgMeasurementDTOList.get(0).getSid());
 
             log.info("data was saved");
 
             //rabbitMQProducer.sendMessage(message);
         } catch (IoTDBConnectionException ioTDBConnectionException) {
             ioTDBConnectionException.printStackTrace();
-            checkTimeSeriesExits(session, timeSeriesPath);
+            checkTimeSeriesExits(session, timeSeriesPath,originalSessionId);
 
             deviceIdList.clear();
             timeSerieList.clear();
@@ -318,7 +333,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             valueList.clear();
         } catch (Exception e) {
             e.printStackTrace();
-            checkTimeSeriesExits(session, timeSeriesPath);
+            checkTimeSeriesExits(session, timeSeriesPath,originalSessionId);
 
             deviceIdList.clear();
             timeSerieList.clear();
@@ -327,7 +342,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             valueList.clear();
 
         } finally {
-            
+
             deviceIdList.clear();
             timeSerieList.clear();
             measurementList.clear();
