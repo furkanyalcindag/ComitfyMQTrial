@@ -8,6 +8,6 @@ public class TokenDTO {
     private String id;
     private String session;
     private String apiToken;
-    private Long valueFor;
+    private Long validFor;
 
 }

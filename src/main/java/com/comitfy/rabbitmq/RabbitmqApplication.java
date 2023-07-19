@@ -53,8 +53,9 @@ public class RabbitmqApplication implements ApplicationRunner {
         }
         System.out.println("jkgjhjh");
 
+*/
+       // Session session = iotdbConfig.ioTDBConnectionManager().getSession();
 
-
-        restApiClientService.convertApiConsume(session,"1689496198171");*/
+        //restApiClientService.convertApiConsume(session,"1689496198171");
     }
 }

@@ -48,11 +48,34 @@ public class RestApiClientService {
     public ResponseEntity<ResponseTokenDTO> getJWTToken(String patientId) {
 
         try {
+/*
+'x-locale': 'en-gb',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api': 'v8',
+          'x-encrypted': 0,
+ */
+           HttpHeaders headers= new HttpHeaders() {{
+                set("x-locale", "en-gb");
+                set("ContentType","application/json");
+                set("Accept","application/json");
+                set("x-api","v8");
+                set("x-encrypted","0");
+            }};
+
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+
+
             RestTemplate restTemplate = new RestTemplate();
             log.info("start authorization request");
             String url = apiConfiguration.getMap2healApiUrl() + "/remote-patient/external/get-token-by-remote-patient?id=" + patientId;
-            ResponseEntity<ResponseTokenDTO> response
-                    = restTemplate.getForEntity(url, ResponseTokenDTO.class);
+            /*ResponseEntity<ResponseTokenDTO> response
+                    = restTemplate.getForEntity(url, ResponseTokenDTO.class);*/
+
+            ResponseEntity<ResponseTokenDTO> response=restTemplate.exchange(
+                    url, HttpMethod.GET, requestEntity, ResponseTokenDTO.class);
+            //header
 
             return response;
         } catch (Exception e) {
@@ -67,6 +90,11 @@ public class RestApiClientService {
         return new HttpHeaders() {{
             String authHeader = "Bearer " + new String(token);
             set("Authorization", authHeader);
+            set("x-locale", "en-gb");
+            set("ContentType","application/json");
+            set("Accept","application/json");
+            set("x-api","v8");
+            set("x-encrypted","0");
         }};
     }
 
@@ -82,9 +110,8 @@ public class RestApiClientService {
             // Create the file objectrp_${own}_$sid.dat
             File file = new File(
                     resourceLoader.
-                            getResource("classpath:").getURL().getPath() + "/rp_" +
-                            jsonObject.getJSONObject("ReadStreamHistory").get("owner").toString() +
-                            "_" + sessionIdHash + ".json");
+                            getResource("classpath:").getURL().getPath() + "/"  +
+                            sessionIdHash + ".json");
 
 
             // Check if the file already exists
@@ -182,6 +209,14 @@ public class RestApiClientService {
         String originalSession = ownSession;
         ownSession = getHash(ownSession);
 
+        JSONObject jsonForFile = createMeasurementJsonForFile(session, originalSession);
+
+        File file = createFile(jsonForFile, ownSession);
+
+
+
+        JSONObject jsonObjectReadStreamHistory = (JSONObject) jsonForFile.get("ReadStreamHistory");
+
         String convertUrl
                 = apiConfiguration.getMap2healApiUrl() + "/remote-patient/external/create-measurement";
         RestTemplate restTemplate = new RestTemplate();
@@ -189,18 +224,16 @@ public class RestApiClientService {
         String convertUrl
                 = apiConfiguration.getDartFrogUrl() + "/ecg/create-measurement";*/
 
-        ResponseEntity<ResponseTokenDTO> response = getJWTToken(ownSession);
+        ResponseEntity<ResponseTokenDTO> response = getJWTToken((String) jsonObjectReadStreamHistory.get("owner"));//own_id
         String token = Objects.requireNonNull(response.getBody()).getData().getApiToken();
         //String token = "Objects.requireNonNull(response.getBody()).getData().getApiToken();";
 
 
-        JSONObject jsonForFile = createMeasurementJsonForFile(session, ownSession);
 
-        File file = createFile(jsonForFile, ownSession);
 
         HttpHeaders headers = createHeaders(token);
 
-        JSONObject jsonObjectReadStreamHistory = (JSONObject) jsonForFile.get("ReadStreamHistory");
+
 
 
         JSONObject jsonBody = new JSONObject();
