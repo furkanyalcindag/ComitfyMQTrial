@@ -26,7 +26,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue queueProducer() {
-        return new Queue("fileCollector", true);
+        return new Queue("redisCollector", true);
     }
 
     // spring bean for rabbitmq exchange

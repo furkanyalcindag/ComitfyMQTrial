@@ -159,6 +159,8 @@ public class IOTDBService {
             if(inCount.equals(outCount)){
                 Session session = iotdbConfig.ioTDBConnectionManager().getSession();
                 restApiClientService.convertApiConsume(session,ecgSession);
+                timeSeriesCache.get(key).cancel();
+                timeSeriesCache.remove(key);
             }
             else {
                 Timer timer = new Timer();
@@ -171,9 +173,7 @@ public class IOTDBService {
                 timeSeriesCache.put(key, timer);
             }
 
-            timeSeriesCache.get(key).cancel();
 
-            timeSeriesCache.remove(key);
         } catch (Exception e) {
 
             Timer timer = new Timer();
@@ -271,6 +271,10 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             for (EKGMeasurementDTO ekg : ekgMeasurementDTOList) {
 
                 ekg.setSn(ekg.getSn().replace("-", "_"));
+
+                if(ekg.getIsLead()!=null){
+                    ekg.setIsLead(false);
+                }
                 // String deviceId = iotdbConfig.getStorageGroup() + "." + ekg.getSn(); // Veri noktasının cihaz kimliği
                 //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid." + ekg.getSid().split("_")[0];
                 //String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + "_sid" + ekg.getSid().split("_")[0];
@@ -317,12 +321,14 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             //session.insertRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
             session.insertAlignedRecords(deviceIdList, timeSerieList, measurementList, tsDataTypeList, valueList);
 
-            redisService.setValue(ekgMeasurementDTOList.get(0).getSid());
+            //redisService.setValue();
 
+            rabbitMQProducer.sendMessage(ekgMeasurementDTOList.get(0).getSid());
             log.info("data was saved");
 
             //rabbitMQProducer.sendMessage(message);
         } catch (IoTDBConnectionException ioTDBConnectionException) {
+            log.error(ioTDBConnectionException.getMessage());
             ioTDBConnectionException.printStackTrace();
             checkTimeSeriesExits(session, timeSeriesPath,originalSessionId);
 

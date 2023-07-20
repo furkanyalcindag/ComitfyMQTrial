@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 public class RabbitMQProducer {
 
     private final RabbitTemplate rabbitTemplate;
-    private final String queueName = "fileCollector";
+    private final String queueName = "redisCollector";
 
     @Autowired
     public RabbitMQProducer(RabbitTemplate rabbitTemplate) {
@@ -22,7 +22,7 @@ public class RabbitMQProducer {
     public void sendMessage(String message) {
         try{
             rabbitTemplate.convertAndSend(queueName, message);
-            log.info("Message sent: " + message);
+            //log.info("Message sent: " + message);
         }
         catch (Exception e){
 

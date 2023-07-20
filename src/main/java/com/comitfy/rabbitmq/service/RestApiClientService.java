@@ -55,16 +55,15 @@ public class RestApiClientService {
           'x-api': 'v8',
           'x-encrypted': 0,
  */
-           HttpHeaders headers= new HttpHeaders() {{
+            HttpHeaders headers = new HttpHeaders() {{
                 set("x-locale", "en-gb");
-                set("ContentType","application/json");
-                set("Accept","application/json");
-                set("x-api","v8");
-                set("x-encrypted","0");
+                set("ContentType", "application/json");
+                set("Accept", "application/json");
+                set("x-api", "v8");
+                set("x-encrypted", "0");
             }};
 
             HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-
 
 
             RestTemplate restTemplate = new RestTemplate();
@@ -73,7 +72,7 @@ public class RestApiClientService {
             /*ResponseEntity<ResponseTokenDTO> response
                     = restTemplate.getForEntity(url, ResponseTokenDTO.class);*/
 
-            ResponseEntity<ResponseTokenDTO> response=restTemplate.exchange(
+            ResponseEntity<ResponseTokenDTO> response = restTemplate.exchange(
                     url, HttpMethod.GET, requestEntity, ResponseTokenDTO.class);
             //header
 
@@ -91,10 +90,10 @@ public class RestApiClientService {
             String authHeader = "Bearer " + new String(token);
             set("Authorization", authHeader);
             set("x-locale", "en-gb");
-            set("ContentType","application/json");
-            set("Accept","application/json");
-            set("x-api","v8");
-            set("x-encrypted","0");
+            set("ContentType", "application/json");
+            set("Accept", "application/json");
+            set("x-api", "v8");
+            set("x-encrypted", "0");
         }};
     }
 
@@ -108,7 +107,7 @@ public class RestApiClientService {
 
             String fileSeparator = System.getProperty("file.separator");
 
-            String absoluteFilePath = fileSeparator+"var"+fileSeparator+sessionIdHash+".json";
+            String absoluteFilePath = fileSeparator + "var" + fileSeparator + sessionIdHash + ".json";
 
             log.info(absoluteFilePath);
 
@@ -120,19 +119,22 @@ public class RestApiClientService {
             // Check if the file already exists
             if (file.exists()) {
                 System.out.println("File already exists.");
-            } else {
-                // Create a new file
-                if (file.createNewFile()) {
-
-                    Files.writeString(file.toPath(), jsonObject.toString());
-
-                    System.out.println("File created successfully.");
-                    return file;
-
-                } else {
-                    System.out.println("Failed to create the file.");
-                }
+                file.delete();
             }
+
+            file = new File(absoluteFilePath);
+            // Create a new file
+            if (file.createNewFile()) {
+
+                Files.writeString(file.toPath(), jsonObject.toString());
+
+                System.out.println("File created successfully.");
+                return file;
+
+            } else {
+                System.out.println("Failed to create the file.");
+            }
+
         } catch (IOException e) {
             System.out.println("An error occurred: " + e.getMessage());
         }
@@ -164,6 +166,7 @@ public class RestApiClientService {
             SessionDataSet sessionCountDataSet = session.executeQueryStatement("select count(val)  from root.ecg.*.*.sid" + ownSessionHash + ";");
 
 
+            log.info("column name {}",sessionMinDataSet.getColumnNames().get(0));
             String sn = sessionMinDataSet.getColumnNames().get(0).split("\\.")[2];
             String own = sessionMinDataSet.getColumnNames().get(0).split("\\.")[3].split("own")[1];
 
@@ -214,8 +217,7 @@ public class RestApiClientService {
 
         JSONObject jsonForFile = createMeasurementJsonForFile(session, originalSession);
 
-        File file = createFile(jsonForFile, ownSession);
-
+        File file = createFile(jsonForFile, originalSession);
 
 
         JSONObject jsonObjectReadStreamHistory = (JSONObject) jsonForFile.get("ReadStreamHistory");
@@ -232,11 +234,7 @@ public class RestApiClientService {
         //String token = "Objects.requireNonNull(response.getBody()).getData().getApiToken();";
 
 
-
-
         HttpHeaders headers = createHeaders(token);
-
-
 
 
         JSONObject jsonBody = new JSONObject();
@@ -249,13 +247,12 @@ public class RestApiClientService {
         jsonObjectRemoteData.put("remote_patient_id", jsonObjectReadStreamHistory.get("owner"));
         jsonObjectRemoteData.put("param", "json");
         jsonObjectRemoteData.put("remote_patient_loinc_num", "71575-5");
-        jsonObjectRemoteData.put("uuid", ownSession);
+        jsonObjectRemoteData.put("uuid", originalSession);
         jsonObjectRemoteData.put("data_float", jsonObjectReadStreamHistory.get("count"));
         jsonObjectRemoteData.put("force_update", 1);
-        if(originalSession.contains("sync")){
+        if (originalSession.contains("sync")) {
             jsonObjectRemoteData.put("data", "ECG-Sync");
-        }
-        else {
+        } else {
             jsonObjectRemoteData.put("data", "ECG-Stream");
         }
 
