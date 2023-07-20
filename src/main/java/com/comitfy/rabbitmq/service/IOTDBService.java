@@ -163,6 +163,7 @@ public class IOTDBService {
                 timeSeriesCache.remove(key);
             }
             else {
+                timeSeriesCache.get(key).cancel();
                 Timer timer = new Timer();
                 timer.schedule(new TimerTask() {
                     @Override
@@ -176,6 +177,8 @@ public class IOTDBService {
 
         } catch (Exception e) {
 
+            log.error(e.getMessage());
+            timeSeriesCache.get(key).cancel();
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
