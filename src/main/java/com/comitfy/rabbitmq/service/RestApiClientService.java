@@ -106,12 +106,15 @@ public class RestApiClientService {
         ClassLoader classLoader = getClass().getClassLoader();
         try {
 
+            String fileSeparator = System.getProperty("file.separator");
+
+            String absoluteFilePath = fileSeparator+"var"+fileSeparator+sessionIdHash+".json";
+
+            log.info(absoluteFilePath);
+
 
             // Create the file objectrp_${own}_$sid.dat
-            File file = new File(
-                    resourceLoader.
-                            getResource("classpath:").getURL().getPath() + "/"  +
-                            sessionIdHash + ".json");
+            File file = new File(absoluteFilePath);
 
 
             // Check if the file already exists
