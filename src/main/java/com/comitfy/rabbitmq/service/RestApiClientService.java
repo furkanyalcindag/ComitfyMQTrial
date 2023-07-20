@@ -213,7 +213,7 @@ public class RestApiClientService {
     public void convertApiConsume(Session session, String ownSession) throws NoSuchAlgorithmException {
 
         String originalSession = ownSession;
-        ownSession = getHash(ownSession);
+        originalSession = getHash(ownSession);
 
         JSONObject jsonForFile = createMeasurementJsonForFile(session, originalSession);
 

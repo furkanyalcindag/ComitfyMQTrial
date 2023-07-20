@@ -28,7 +28,7 @@ public class RabbitMQConsumer {
     }
     */
 
-    @RabbitListener(queues = {"${rabbitmq.queue.lb1.name}"})
+    //@RabbitListener(queues = {"${rabbitmq.queue.lb1.name}"})
 
     public void consume(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         LOGGER.info(String.format("Received message -> %s", message));
@@ -40,7 +40,7 @@ public class RabbitMQConsumer {
         }
     }
 
-    @RabbitListener(queues = {"${rabbitmq.queue.lb2.name}"})
+    //@RabbitListener(queues = {"${rabbitmq.queue.lb2.name}"})
     public void consume2(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         LOGGER.info(String.format("Received message -> %s", message));
         try{
@@ -51,7 +51,7 @@ public class RabbitMQConsumer {
         }
     }
 
-    @RabbitListener(queues = {"${rabbitmq.queue.lb3.name}"})
+    //@RabbitListener(queues = {"${rabbitmq.queue.lb3.name}"})
     public void consume3(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         LOGGER.info(String.format("Received message -> %s", message));
         try{
@@ -62,7 +62,7 @@ public class RabbitMQConsumer {
         }
     }
 
-   @RabbitListener(queues = {"${rabbitmq.queue.lb4.name}"})
+   //@RabbitListener(queues = {"${rabbitmq.queue.lb4.name}"})
     public void consume4(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         LOGGER.info(String.format("Received message -> %s", message));
         try{
@@ -73,7 +73,7 @@ public class RabbitMQConsumer {
         }
     }
 
-   @RabbitListener(queues = {"${rabbitmq.queue.lb5.name}"})
+   //@RabbitListener(queues = {"${rabbitmq.queue.lb5.name}"})
     public void consume5(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         LOGGER.info(String.format("Received message -> %s", message));
         try{
@@ -84,7 +84,7 @@ public class RabbitMQConsumer {
         }
     }
 
-    @RabbitListener(queues = {"${rabbitmq.queue.lb6.name}"})
+   // @RabbitListener(queues = {"${rabbitmq.queue.lb6.name}"})
     public void consume6(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         //LOGGER.info(String.format("Received message -> %s", message));
         try{
@@ -98,7 +98,7 @@ public class RabbitMQConsumer {
 
 
 
-    @RabbitListener(queues = {"${rabbitmq.queue.redis.name}"})
+    //@RabbitListener(queues = {"${rabbitmq.queue.redis.name}"})
     public void consume7(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {
         //LOGGER.info(String.format("Received message -> %s", message));
         try{
