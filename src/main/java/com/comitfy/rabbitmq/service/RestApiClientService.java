@@ -14,15 +14,15 @@ import org.apache.iotdb.tsfile.read.common.Field;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
@@ -236,6 +236,8 @@ public class RestApiClientService {
 
         HttpHeaders headers = createHeaders(token);
 
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
 
         JSONObject jsonBody = new JSONObject();
         jsonBody.put("dataFile", file);
@@ -346,7 +348,16 @@ public class RestApiClientService {
         jsonBody.put("RemotePatientMeasurement", jsonObjectRemoteData);
 
 
-        HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody.toString(), headers);
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("dataFile", new FileSystemResource(file));
+        body.add("RemotePatientMeasurement", jsonObjectRemoteData);
+
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+
+
+        //HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody.toString(), headers);
 
         //HttpEntity<List<EKGMeasurementDTO>> entity = new HttpEntity<>(ekgMeasurementDTOList, headers);
 
