@@ -76,6 +76,8 @@ public class RestApiClientService {
                     url, HttpMethod.GET, requestEntity, ResponseTokenDTO.class);
             //header
 
+            log.info("token {}", response);
+
             return response;
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -166,7 +168,7 @@ public class RestApiClientService {
             SessionDataSet sessionCountDataSet = session.executeQueryStatement("select count(val)  from root.ecg.*.*.sid" + ownSessionHash + ";");
 
 
-            log.info("column name {}",sessionMinDataSet.getColumnNames().get(0));
+            log.info("column name {}", sessionMinDataSet.getColumnNames().get(0));
             String sn = sessionMinDataSet.getColumnNames().get(0).split("\\.")[2];
             String own = sessionMinDataSet.getColumnNames().get(0).split("\\.")[3].split("own")[1];
 
@@ -348,13 +350,11 @@ public class RestApiClientService {
         jsonBody.put("RemotePatientMeasurement", jsonObjectRemoteData);
 
 
-
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("dataFile", new FileSystemResource(file));
         body.add("RemotePatientMeasurement", jsonObjectRemoteData);
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
 
 
         //HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody.toString(), headers);
