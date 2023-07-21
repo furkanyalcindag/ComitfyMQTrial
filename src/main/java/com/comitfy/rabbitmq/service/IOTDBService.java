@@ -35,6 +35,8 @@ public class IOTDBService {
     public static Map<String, Timer> timeSeriesCache = new ConcurrentHashMap<>();
 
 
+    public static Map<String, Integer> timeSeriesCacheTryCount = new ConcurrentHashMap<>();
+
     public static Map<String, EKGMeasurementDTO> measurementCacheByTimeSeriesPathMap = new HashMap<>();
 
     @Autowired
@@ -50,8 +52,7 @@ public class IOTDBService {
     RedisService redisService;
 
 
-    public synchronized boolean checkTimeSeriesExits(Session session, String path,String ecgSession) throws IoTDBConnectionException, StatementExecutionException {
-
+    public synchronized boolean checkTimeSeriesExits(Session session, String path, String ecgSession) throws IoTDBConnectionException, StatementExecutionException {
 
 
         if (timeSeriesCache.containsKey(path)) {
@@ -62,10 +63,11 @@ public class IOTDBService {
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    actionAfterTimeout(path,ecgSession);
+                    actionAfterTimeout(path, ecgSession);
                 }
             }, 30000);
             timeSeriesCache.put(path, timer);
+            timeSeriesCacheTryCount.put(path, 0);
             return Boolean.TRUE;
 
         } else {
@@ -115,16 +117,18 @@ public class IOTDBService {
                     }
                 }, 30000);
                 timeSeriesCache.put(path, timer);
+                timeSeriesCacheTryCount.put(path, 0);
                 return Boolean.FALSE;
             } else {
                 Timer timer = new Timer();
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        actionAfterTimeout(path,ecgSession);
+                        actionAfterTimeout(path, ecgSession);
                     }
                 }, 30000);
                 timeSeriesCache.put(path, timer);
+                timeSeriesCacheTryCount.put(path, 0);
                 return Boolean.TRUE;
             }
 
@@ -149,22 +153,22 @@ public class IOTDBService {
     }
 
 
-    void actionAfterTimeout(String key,String ecgSession) {
+    void actionAfterTimeout(String key, String ecgSession) {
         try {
 
-            Long inCount =   redisService.getCount("in_"+ecgSession);
-            Long outCount =   redisService.getCount("out_"+ecgSession);
 
-            log.info("for "+ ecgSession +"redis inCount: "+inCount+" outcount: "+ outCount);
+            Long inCount = redisService.getCount("in_" + ecgSession);
+            Long outCount = redisService.getCount("out_" + ecgSession);
 
-            if(inCount.equals(outCount)){
+            log.info("for " + ecgSession + "redis inCount: " + inCount + " outcount: " + outCount);
+
+            if (inCount.equals(outCount)) {
                 Session session = iotdbConfig.ioTDBConnectionManager().getSession();
-                restApiClientService.convertApiConsume(session,ecgSession);
+                restApiClientService.convertApiConsume(session, ecgSession);
                 timeSeriesCache.get(key).cancel();
                 timeSeriesCache.remove(key);
                 redisService.delete(ecgSession);
-            }
-            else {
+            } else {
                 timeSeriesCache.get(key).cancel();
                 Timer timer = new Timer();
                 timer.schedule(new TimerTask() {
@@ -181,15 +185,21 @@ public class IOTDBService {
 
             log.error(e.getMessage());
             timeSeriesCache.get(key).cancel();
-            Timer timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    actionAfterTimeout(key,ecgSession);
-                }
-            }, 30000);
+            timeSeriesCacheTryCount.put(key, timeSeriesCacheTryCount.get(key) + 1);
+            if (timeSeriesCacheTryCount.get(key) < 3) {
+                Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        actionAfterTimeout(key, ecgSession);
+                    }
+                }, 30000);
+                timeSeriesCache.put(key, timer);
+            } else {
+                timeSeriesCache.remove(key);
+                timeSeriesCacheTryCount.remove(key);
+            }
 
-            timeSeriesCache.put(key, timer);
 
         }
 
@@ -277,7 +287,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
 
                 ekg.setSn(ekg.getSn().replace("-", "_"));
 
-                if(ekg.getIsLead()!=null){
+                if (ekg.getIsLead() != null) {
                     ekg.setIsLead(false);
                 }
                 // String deviceId = iotdbConfig.getStorageGroup() + "." + ekg.getSn(); // Veri noktasının cihaz kimliği
@@ -294,7 +304,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
 
                 // String timeSeriesPath = deviceId + ".own" + ekg.getOwn() + ".sid" + sessionId;
 
-                checkTimeSeriesExits(session, timeSeriesPath,ekgMeasurementDTOList.get(0).getSid());
+                checkTimeSeriesExits(session, timeSeriesPath, ekgMeasurementDTOList.get(0).getSid());
                 deviceIdList.add(timeSeriesPath);
                 timeSerieList.add(ekg.getTs());
                 //measurementList.add(List.of("own" + ekg.getOwn()));
@@ -335,7 +345,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
         } catch (IoTDBConnectionException ioTDBConnectionException) {
             log.error(ioTDBConnectionException.getMessage());
             ioTDBConnectionException.printStackTrace();
-            checkTimeSeriesExits(session, timeSeriesPath,originalSessionId);
+            checkTimeSeriesExits(session, timeSeriesPath, originalSessionId);
 
             deviceIdList.clear();
             timeSerieList.clear();
@@ -344,7 +354,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
             valueList.clear();
         } catch (Exception e) {
             e.printStackTrace();
-            checkTimeSeriesExits(session, timeSeriesPath,originalSessionId);
+            checkTimeSeriesExits(session, timeSeriesPath, originalSessionId);
 
             deviceIdList.clear();
             timeSerieList.clear();
