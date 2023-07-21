@@ -42,6 +42,9 @@ public class RestApiClientService {
     @Autowired
     APIConfiguration apiConfiguration;
 
+    @Autowired
+    RedisService redisService;
+
 
     @Retryable(
             maxAttempts = 3,
@@ -247,14 +250,6 @@ public class RestApiClientService {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
 
-        JSONObject jsonBody = new JSONObject();
-        jsonBody.put("dataFile", file);
-        jsonBody.put("RemotePatientMeasurement", JSONObject.NULL);
-
-        //JSONObject jsonObjectRemoteData = new JSONObject();
-
-        //Map<String, Object> jsonObjectRemoteData = new HashMap<>();
-
 
         MultiValueMap<String, Object> jsonObjectRemoteData = new LinkedMultiValueMap<>();
 
@@ -319,10 +314,6 @@ public class RestApiClientService {
         jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", jsonObjectReadStreamHistory.get("sn").toString().toUpperCase());
 
 
-
-
-
-
         i++;
 
 
@@ -341,7 +332,6 @@ public class RestApiClientService {
         jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", jsonObjectReadStreamHistory.get("end"));
 
 
-
         i++;
 
 
@@ -350,38 +340,15 @@ public class RestApiClientService {
         jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 0);
         jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", jsonObjectReadStreamHistory.get("count"));
 
-        // jsonObjectRemoteData.put("addAttributes",attList);
 
 
-        //jsonBody.put("RemotePatientMeasurement", jsonObjectRemoteData);
-
-        String json = objectMapper.writeValueAsString(jsonObjectRemoteData);
-        //MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         jsonObjectRemoteData.add("dataFile", new FileSystemResource(file));
-        //jsonObjectRemoteData.add("RemotePatientMeasurement", jsonObjectRemoteData);
 
-
-
-
-        /*MultiValueMap<String, String> jsonPart = new LinkedMultiValueMap<>();
-        jsonPart.add("RemotePatientMeasurement", jsonObjectRemoteData.toString());
-
-        // Create the file part of the multipart request
-        MultiValueMap<String, Object> filePart = new LinkedMultiValueMap<>();
-        filePart.add("dataFile", new FileSystemResource(file));*/
 
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(jsonObjectRemoteData, headers);
 
 
-        //HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody.toString(), headers);
-
-        //HttpEntity<List<EKGMeasurementDTO>> entity = new HttpEntity<>(ekgMeasurementDTOList, headers);
-
-        /*if (file != null) {
-            boolean isDelete = file.delete();
-            log.info("file delete result {}", isDelete);
-        }*/
 
 
         ResponseEntity<ConverterDTO> measurementDTO =

@@ -3,7 +3,10 @@ package com.comitfy.rabbitmq.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
 
 @Service
 @Slf4j
@@ -42,4 +45,16 @@ public class RedisService {
 
 
     }
+
+    @Async
+    public void delete(String key){
+        try{
+            String [] keys = {"in_"+key,"out_"+key};
+            template.delete(Arrays.asList(keys));
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+        }
+    }
+
 }

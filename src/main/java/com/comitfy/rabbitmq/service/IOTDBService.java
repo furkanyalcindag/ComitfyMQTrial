@@ -34,6 +34,7 @@ public class IOTDBService {
 
     public static Map<String, Timer> timeSeriesCache = new ConcurrentHashMap<>();
 
+
     public static Map<String, EKGMeasurementDTO> measurementCacheByTimeSeriesPathMap = new HashMap<>();
 
     @Autowired
@@ -49,7 +50,7 @@ public class IOTDBService {
     RedisService redisService;
 
 
-    public boolean checkTimeSeriesExits(Session session, String path,String ecgSession) throws IoTDBConnectionException, StatementExecutionException {
+    public synchronized boolean checkTimeSeriesExits(Session session, String path,String ecgSession) throws IoTDBConnectionException, StatementExecutionException {
 
 
 
@@ -161,6 +162,7 @@ public class IOTDBService {
                 restApiClientService.convertApiConsume(session,ecgSession);
                 timeSeriesCache.get(key).cancel();
                 timeSeriesCache.remove(key);
+                redisService.delete(ecgSession);
             }
             else {
                 timeSeriesCache.get(key).cancel();
