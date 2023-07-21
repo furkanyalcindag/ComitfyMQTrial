@@ -231,12 +231,14 @@ public class RestApiClientService {
         String convertUrl
                 = apiConfiguration.getDartFrogUrl() + "/ecg/create-measurement";*/
 
-        ResponseEntity<ResponseTokenDTO> response = getJWTToken((String) jsonObjectReadStreamHistory.get("owner"));//own_id
-        String token = Objects.requireNonNull(response.getBody()).getData().getApiToken();
+        //ResponseEntity<ResponseTokenDTO> response = getJWTToken((String) jsonObjectReadStreamHistory.get("owner"));//own_id
+        //String token = Objects.requireNonNull(response.getBody()).getData().getApiToken();
+
+
         //String token = "Objects.requireNonNull(response.getBody()).getData().getApiToken();";
 
 
-        HttpHeaders headers = createHeaders(token);
+        HttpHeaders headers = createHeaders("hjkdshjdks");
 
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
@@ -352,7 +354,7 @@ public class RestApiClientService {
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("dataFile", new FileSystemResource(file));
-        body.add("RemotePatientMeasurement", jsonObjectRemoteData);
+        body.add("RemotePatientMeasurement", jsonObjectRemoteData.toString());
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
