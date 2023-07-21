@@ -28,6 +28,7 @@ public class RabbitMQConsumer {
     }
     */
 
+
     @RabbitListener(queues = {"${rabbitmq.queue.lb1.name}"})
 
     public void consume(String message) throws IoTDBConnectionException, JsonProcessingException, StatementExecutionException {

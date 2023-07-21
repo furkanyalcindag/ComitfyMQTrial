@@ -6,6 +6,8 @@ import com.comitfy.rabbitmq.dto.BaseResponseDTO;
 import com.comitfy.rabbitmq.dto.ConverterDTO;
 import com.comitfy.rabbitmq.dto.EKGMeasurementDTO;
 import com.comitfy.rabbitmq.dto.ResponseTokenDTO;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.xml.bind.DatatypeConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.iotdb.isession.SessionDataSet;
@@ -109,7 +111,8 @@ public class RestApiClientService {
 
             String fileSeparator = System.getProperty("file.separator");
 
-            String absoluteFilePath = fileSeparator + "var" + fileSeparator + sessionIdHash + ".json";
+            //String absoluteFilePath = fileSeparator + "var" + fileSeparator + sessionIdHash + ".json";
+            String absoluteFilePath = fileSeparator + "C:" + fileSeparator + sessionIdHash + ".json";
 
             log.info(absoluteFilePath);
 
@@ -212,11 +215,12 @@ public class RestApiClientService {
     }//Creating a JSONObject object
 
 
-    public void convertApiConsume(Session session, String ownSession) throws NoSuchAlgorithmException {
+    public void convertApiConsume(Session session, String ownSession) throws NoSuchAlgorithmException, JsonProcessingException {
 
         String originalSession = ownSession;
         originalSession = getHash(ownSession);
 
+        ObjectMapper objectMapper = new ObjectMapper();
         JSONObject jsonForFile = createMeasurementJsonForFile(session, originalSession);
 
         File file = createFile(jsonForFile, originalSession);
@@ -231,14 +235,14 @@ public class RestApiClientService {
         String convertUrl
                 = apiConfiguration.getDartFrogUrl() + "/ecg/create-measurement";*/
 
-        //ResponseEntity<ResponseTokenDTO> response = getJWTToken((String) jsonObjectReadStreamHistory.get("owner"));//own_id
-        //String token = Objects.requireNonNull(response.getBody()).getData().getApiToken();
+        ResponseEntity<ResponseTokenDTO> response = getJWTToken((String) jsonObjectReadStreamHistory.get("owner"));//own_id
+        String token = Objects.requireNonNull(response.getBody()).getData().getApiToken();
 
 
         //String token = "Objects.requireNonNull(response.getBody()).getData().getApiToken();";
 
 
-        HttpHeaders headers = createHeaders("hjkdshjdks");
+        HttpHeaders headers = createHeaders(token);
 
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
@@ -247,116 +251,127 @@ public class RestApiClientService {
         jsonBody.put("dataFile", file);
         jsonBody.put("RemotePatientMeasurement", JSONObject.NULL);
 
-        JSONObject jsonObjectRemoteData = new JSONObject();
-        JSONArray jsonArrayAttribute = new JSONArray();
+        //JSONObject jsonObjectRemoteData = new JSONObject();
 
-        jsonObjectRemoteData.put("remote_patient_id", jsonObjectReadStreamHistory.get("owner"));
-        jsonObjectRemoteData.put("param", "json");
-        jsonObjectRemoteData.put("remote_patient_loinc_num", "71575-5");
-        jsonObjectRemoteData.put("uuid", originalSession);
-        jsonObjectRemoteData.put("data_float", jsonObjectReadStreamHistory.get("count"));
-        jsonObjectRemoteData.put("force_update", 1);
+        //Map<String, Object> jsonObjectRemoteData = new HashMap<>();
+
+
+        MultiValueMap<String, Object> jsonObjectRemoteData = new LinkedMultiValueMap<>();
+
+
+        jsonObjectRemoteData.add("RemotePatientMeasurement[remote_patient_id]", jsonObjectReadStreamHistory.get("owner"));
+        jsonObjectRemoteData.add("RemotePatientMeasurement[param]", "json");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[ext]", "dat");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[remote_patient_loinc_num]", "71575-5");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[uuid]", originalSession);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[data_float]", jsonObjectReadStreamHistory.get("count"));
+        jsonObjectRemoteData.add("RemotePatientMeasurement[force_update]", 1);
         if (originalSession.contains("sync")) {
-            jsonObjectRemoteData.put("data", "ECG-Sync");
+            jsonObjectRemoteData.add("RemotePatientMeasurement[data]", "ECG-Sync");
         } else {
-            jsonObjectRemoteData.put("data", "ECG-Stream");
+            jsonObjectRemoteData.add("RemotePatientMeasurement[data]", "ECG-Stream");
         }
 
+
+        int i = 0;
         if (originalSession.contains("sync")) {
-            JSONObject attribute1 = new JSONObject();
-            JSONObject remotePatientAttribute1 = new JSONObject();
-            remotePatientAttribute1.put("type", "number");
-            remotePatientAttribute1.put("name", "ecgSync");
-            remotePatientAttribute1.put("hidden", 1);
-            remotePatientAttribute1.put("value", 1);
-            attribute1.put("RemotePatientMeasurementAttribute", remotePatientAttribute1);
-            jsonArrayAttribute.put(attribute1);
+
+            jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "number");
+            jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "ecgSync");
+            jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 1);
+            jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", 1);
+            i++;
+
+
         }
 
 
-        JSONObject attribute2 = new JSONObject();
-        JSONObject remotePatientAttribute2 = new JSONObject();
-        remotePatientAttribute2.put("type", "number");
-        remotePatientAttribute2.put("name", "xScaleFactor");
-        remotePatientAttribute2.put("hidden", 1);
-        remotePatientAttribute2.put("loinc", "71575-5");
-        remotePatientAttribute2.put("value",
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "number");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "xScaleFactor");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 1);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][loinc]", "71575-5");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]",
                 jsonObjectReadStreamHistory.get("sn").toString().toUpperCase().startsWith("HC02") ? "0.25" : "1");
-        attribute2.put("RemotePatientMeasurementAttribute", remotePatientAttribute2);
-        jsonArrayAttribute.put(attribute2);
+        i++;
 
 
-        JSONObject attribute3 = new JSONObject();
-        JSONObject remotePatientAttribute3 = new JSONObject();
-        remotePatientAttribute3.put("type", "number");
-        remotePatientAttribute3.put("name", "yScaleFactor");
-        remotePatientAttribute3.put("hidden", 1);
-        remotePatientAttribute3.put("loinc", "71575-5");
-        remotePatientAttribute3.put("value", "1.0");
-        attribute3.put("RemotePatientMeasurementAttribute", remotePatientAttribute3);
-        jsonArrayAttribute.put(attribute3);
-
-        JSONObject attribute4 = new JSONObject();
-        JSONObject remotePatientAttribute4 = new JSONObject();
-        remotePatientAttribute4.put("type", "number");
-        remotePatientAttribute4.put("name", "centerPoint");
-        remotePatientAttribute4.put("hidden", 1);
-        remotePatientAttribute4.put("loinc", "71575-5");
-        remotePatientAttribute4.put("value", "0");
-        attribute4.put("RemotePatientMeasurementAttribute", remotePatientAttribute4);
-        jsonArrayAttribute.put(attribute4);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "number");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "yScaleFactor");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 1);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][loinc]", "71575-5");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", "1.0");
+        i++;
 
 
-        JSONObject attribute5 = new JSONObject();
-        JSONObject remotePatientAttribute5 = new JSONObject();
-        remotePatientAttribute5.put("type", "string");
-        remotePatientAttribute5.put("name", "deviceIdentity");
-        remotePatientAttribute5.put("hidden", 0);
-        remotePatientAttribute5.put("value", jsonObjectReadStreamHistory.get("sn").toString().toUpperCase());
-        attribute5.put("RemotePatientMeasurementAttribute", remotePatientAttribute5);
-        jsonArrayAttribute.put(attribute5);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "number");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "centerPoint");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 1);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][loinc]", "71575-5");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", "0");
 
 
-        JSONObject attribute6 = new JSONObject();
-        JSONObject remotePatientAttribute6 = new JSONObject();
-        remotePatientAttribute6.put("type", "datetime");
-        remotePatientAttribute6.put("name", "startDate");
-        remotePatientAttribute6.put("hidden", 0);
-        remotePatientAttribute6.put("value", jsonObjectReadStreamHistory.get("start"));
-        attribute6.put("RemotePatientMeasurementAttribute", remotePatientAttribute6);
-        jsonArrayAttribute.put(attribute6);
+        i++;
 
 
-        JSONObject attribute7 = new JSONObject();
-        JSONObject remotePatientAttribute7 = new JSONObject();
-        remotePatientAttribute7.put("type", "datetime");
-        remotePatientAttribute7.put("name", "endDate");
-        remotePatientAttribute7.put("hidden", 0);
-        remotePatientAttribute7.put("value", jsonObjectReadStreamHistory.get("end"));
-        attribute7.put("RemotePatientMeasurementAttribute", remotePatientAttribute7);
-        jsonArrayAttribute.put(attribute7);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "string");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "deviceIdentity");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 0);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", jsonObjectReadStreamHistory.get("sn").toString().toUpperCase());
 
 
-        JSONObject attribute8 = new JSONObject();
-        JSONObject remotePatientAttribute8 = new JSONObject();
-        remotePatientAttribute8.put("type", "number");
-        remotePatientAttribute8.put("name", "count");
-        remotePatientAttribute8.put("hidden", 0);
-        remotePatientAttribute8.put("value", jsonObjectReadStreamHistory.get("count"));
-        attribute8.put("RemotePatientMeasurementAttribute", remotePatientAttribute8);
-        jsonArrayAttribute.put(attribute8);
 
 
-        jsonObjectRemoteData.put("addAttributes", jsonArrayAttribute);
-
-        jsonBody.put("RemotePatientMeasurement", jsonObjectRemoteData);
 
 
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("dataFile", new FileSystemResource(file));
-        body.add("RemotePatientMeasurement", jsonObjectRemoteData.toString());
+        i++;
 
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "datetime");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "startDate");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 0);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", jsonObjectReadStreamHistory.get("start"));
+
+
+        i++;
+
+
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "datetime");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "endDate");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 0);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", jsonObjectReadStreamHistory.get("end"));
+
+
+
+        i++;
+
+
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "number");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "count");
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][hidden]", 0);
+        jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][value]", jsonObjectReadStreamHistory.get("count"));
+
+        // jsonObjectRemoteData.put("addAttributes",attList);
+
+
+        //jsonBody.put("RemotePatientMeasurement", jsonObjectRemoteData);
+
+        String json = objectMapper.writeValueAsString(jsonObjectRemoteData);
+        //MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        jsonObjectRemoteData.add("dataFile", new FileSystemResource(file));
+        //jsonObjectRemoteData.add("RemotePatientMeasurement", jsonObjectRemoteData);
+
+
+
+
+        /*MultiValueMap<String, String> jsonPart = new LinkedMultiValueMap<>();
+        jsonPart.add("RemotePatientMeasurement", jsonObjectRemoteData.toString());
+
+        // Create the file part of the multipart request
+        MultiValueMap<String, Object> filePart = new LinkedMultiValueMap<>();
+        filePart.add("dataFile", new FileSystemResource(file));*/
+
+
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(jsonObjectRemoteData, headers);
 
 
         //HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody.toString(), headers);
