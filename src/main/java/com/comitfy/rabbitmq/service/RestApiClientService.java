@@ -361,10 +361,10 @@ public class RestApiClientService {
 
         //HttpEntity<List<EKGMeasurementDTO>> entity = new HttpEntity<>(ekgMeasurementDTOList, headers);
 
-        if (file != null) {
+        /*if (file != null) {
             boolean isDelete = file.delete();
             log.info("file delete result {}", isDelete);
-        }
+        }*/
 
 
         ResponseEntity<ConverterDTO> measurementDTO =
