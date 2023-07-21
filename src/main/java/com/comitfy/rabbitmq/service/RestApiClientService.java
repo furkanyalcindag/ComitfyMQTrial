@@ -111,8 +111,8 @@ public class RestApiClientService {
 
             String fileSeparator = System.getProperty("file.separator");
 
-            //String absoluteFilePath = fileSeparator + "var" + fileSeparator + sessionIdHash + ".json";
-            String absoluteFilePath = fileSeparator + "C:" + fileSeparator + sessionIdHash + ".json";
+            String absoluteFilePath = fileSeparator + "var" + fileSeparator + sessionIdHash + ".json";
+            //String absoluteFilePath = fileSeparator + "C:" + fileSeparator + sessionIdHash + ".json";
 
             log.info(absoluteFilePath);
 
