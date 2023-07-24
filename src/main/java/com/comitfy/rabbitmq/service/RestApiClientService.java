@@ -260,8 +260,8 @@ public class RestApiClientService {
         jsonObjectRemoteData.add("RemotePatientMeasurement[remote_patient_loinc_num]", "71575-5");
         jsonObjectRemoteData.add("RemotePatientMeasurement[uuid]", originalSession);
         jsonObjectRemoteData.add("RemotePatientMeasurement[data_float]", jsonObjectReadStreamHistory.get("count"));
-        jsonObjectRemoteData.add("RemotePatientMeasurement[force_update]", 1);
-        if (originalSession.contains("sync")) {
+        jsonObjectRemoteData.add("RemotePatientMeasurement[forceUpdate]", 1);
+        if (ownSession.contains("sync")) {
             jsonObjectRemoteData.add("RemotePatientMeasurement[data]", "ECG-Sync");
         } else {
             jsonObjectRemoteData.add("RemotePatientMeasurement[data]", "ECG-Stream");
@@ -269,7 +269,7 @@ public class RestApiClientService {
 
 
         int i = 0;
-        if (originalSession.contains("sync")) {
+        if (ownSession.contains("sync")) {
 
             jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][type]", "number");
             jsonObjectRemoteData.add("RemotePatientMeasurement[addAttributes][" + i + "][name]", "ecgSync");
