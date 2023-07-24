@@ -23,7 +23,7 @@ public class RabbitMQProducer {
     @Async
     public void sendMessage(String message) {
         try {
-            rabbitTemplate.convertAndSend(datRequestQueueName, message);
+            rabbitTemplate.convertAndSend(queueName, message);
             //log.info("Message sent: " + message);
         } catch (Exception e) {
 
@@ -37,7 +37,7 @@ public class RabbitMQProducer {
     @Async
     public void sendMessageToDatRequest(String message) {
         try {
-            rabbitTemplate.convertAndSend(queueName, message);
+            rabbitTemplate.convertAndSend(datRequestQueueName, message);
             //log.info("Message sent: " + message);
         } catch (Exception e) {
 
