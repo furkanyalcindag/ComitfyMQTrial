@@ -29,6 +29,11 @@ public class RabbitMQConfig {
         return new Queue("redisCollector", true);
     }
 
+    @Bean
+    public Queue queueDatProducer() {
+        return new Queue("datCollector", true);
+    }
+
     // spring bean for rabbitmq exchange
     @Bean
     public TopicExchange exchange(){

@@ -163,6 +163,7 @@ public class IOTDBService {
             log.info("for " + ecgSession + "redis inCount: " + inCount + " outcount: " + outCount);
 
             if (inCount.equals(outCount)) {
+                rabbitMQProducer.sendMessageToDatRequest(restApiClientService.getHash(ecgSession));
                 Session session = iotdbConfig.ioTDBConnectionManager().getSession();
                 restApiClientService.convertApiConsume(session, ecgSession);
                 timeSeriesCache.get(key).cancel();

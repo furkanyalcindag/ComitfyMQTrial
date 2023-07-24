@@ -256,7 +256,7 @@ public class RestApiClientService {
 
         jsonObjectRemoteData.add("RemotePatientMeasurement[remote_patient_id]", jsonObjectReadStreamHistory.get("owner"));
         jsonObjectRemoteData.add("RemotePatientMeasurement[param]", "json");
-        jsonObjectRemoteData.add("RemotePatientMeasurement[ext]", "dat");
+        //jsonObjectRemoteData.add("RemotePatientMeasurement[ext]", "dat");
         jsonObjectRemoteData.add("RemotePatientMeasurement[remote_patient_loinc_num]", "71575-5");
         jsonObjectRemoteData.add("RemotePatientMeasurement[uuid]", originalSession);
         jsonObjectRemoteData.add("RemotePatientMeasurement[data_float]", jsonObjectReadStreamHistory.get("count"));

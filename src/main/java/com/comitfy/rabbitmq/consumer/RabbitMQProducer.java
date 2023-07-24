@@ -13,6 +13,8 @@ public class RabbitMQProducer {
     private final RabbitTemplate rabbitTemplate;
     private final String queueName = "redisCollector";
 
+    private final String datRequestQueueName = "datCollector";
+
     @Autowired
     public RabbitMQProducer(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
@@ -20,11 +22,24 @@ public class RabbitMQProducer {
 
     @Async
     public void sendMessage(String message) {
-        try{
+        try {
+            rabbitTemplate.convertAndSend(datRequestQueueName, message);
+            //log.info("Message sent: " + message);
+        } catch (Exception e) {
+
+            log.error("Message not sent: " + e.getMessage());
+
+        }
+
+    }
+
+
+    @Async
+    public void sendMessageToDatRequest(String message) {
+        try {
             rabbitTemplate.convertAndSend(queueName, message);
             //log.info("Message sent: " + message);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
 
             log.error("Message not sent: " + e.getMessage());
 
