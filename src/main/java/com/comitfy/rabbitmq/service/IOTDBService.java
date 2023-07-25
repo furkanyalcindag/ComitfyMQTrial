@@ -288,7 +288,7 @@ SYNC GELİRSE ==>> sync_9832983920382_3204
 
                 ekg.setSn(ekg.getSn().replace("-", "_"));
 
-                if (ekg.getIsLead() != null) {
+                if (ekg.getIsLead() == null) {
                     ekg.setIsLead(false);
                 }
                 // String deviceId = iotdbConfig.getStorageGroup() + "." + ekg.getSn(); // Veri noktasının cihaz kimliği
